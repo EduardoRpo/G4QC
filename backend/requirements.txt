@@ -1,0 +1,34 @@
+# FastAPI and server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.12.1
+
+# Pydantic
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Interactive Brokers API
+# Nota: ibapi debe instalarse manualmente desde IB o usar versión disponible
+# Ver instrucciones en: https://interactivebrokers.github.io/tws-api/
+# Por ahora, comentado - se puede instalar manualmente si es necesario
+# ibapi>=9.81.1
+
+# Data processing
+pandas==2.1.3
+numpy==1.26.2
+
+# Redis (for future Celery tasks)
+redis==5.0.1
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3
+

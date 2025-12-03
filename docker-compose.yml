@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: g4qc_postgres
+    environment:
+      POSTGRES_USER: g4qc
+      POSTGRES_PASSWORD: g4qc_dev
+      POSTGRES_DB: g4qc_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U g4qc"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: g4qc_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: g4qc_backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://g4qc:g4qc_dev@postgres:5432/g4qc_db
+      REDIS_URL: redis://redis:6379
+      IB_HOST: ${IB_HOST:-127.0.0.1}
+      IB_PORT: ${IB_PORT:-7497}
+      IB_CLIENT_ID: ${IB_CLIENT_ID:-1}
+      DEBUG: ${DEBUG:-False}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
+
