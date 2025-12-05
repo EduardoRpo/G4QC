@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G4QC Trading Platform - Arquitectura</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: left;
+            color: #2c3e50;
+            margin-bottom: 40px;
+            font-size: 2.2em;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+            letter-spacing: -0.5px;
+        }
+        
+        .section {
+            margin: 35px 0;
+            padding: 25px;
+            background: #fafafa;
+            border-left: 4px solid #4a90e2;
+            border-radius: 4px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin-bottom: 18px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+        
+        .diagram {
+            background: #f8f8f8;
+            color: #2c3e50;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            white-space: pre;
+            margin: 20px 0;
+            background-color: #fefefe;
+        }
+        
+        .legend {
+            background: white;
+            padding: 25px;
+            border-radius: 4px;
+            margin: 25px 0;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .legend-item {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fafafa;
+            border-left: 3px solid #4a90e2;
+            border-radius: 3px;
+        }
+        
+        .legend-title {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            letter-spacing: -0.2px;
+        }
+        
+        .legend-content {
+            color: #555;
+            line-height: 1.8;
+            font-size: 0.95em;
+        }
+        
+        .legend-content ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .legend-content li {
+            margin: 6px 0;
+        }
+        
+        .flow-box {
+            background: #4a90e2;
+            color: white;
+            padding: 25px;
+            border-radius: 4px;
+            margin: 25px 0;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .flow-item {
+            display: inline-block;
+            margin: 0 8px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 3px;
+            font-size: 0.95em;
+        }
+        
+        .arrow {
+            display: inline-block;
+            margin: 0 8px;
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .diagram {
+                font-size: 10px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>G4QC Trading Platform - Arquitectura del Sistema</h1>
+        
+        <div class="section">
+            <div class="section-title">Frontend - React + TypeScript</div>
+            <div class="diagram">┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FRONTEND (React + TypeScript)                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  Dashboard   │  │ Data Manager │  │Strategy      │  │ Backtesting  │     │
+│  │              │  │              │  │Builder       │  │              │     │
+│  │ • Métricas   │  │ • Extracción │  │ • Editor     │  │ • Configurar │     │
+│  │ • Gráficos   │  │ • Símbolos   │  │ • Validación │  │ • Resultados │     │
+│  │ • Resumen    │  │ • Timeframes │  │ • Preview    │  │ • Gráficos   │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘     │
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐                                         │
+│  │  Portfolio   │  │ Live Trading │                                         │
+│  │  Analyzer    │  │              │                                         │
+│  │              │  │ • Posiciones │                                         │
+│  │ • Riesgo     │  │ • Órdenes   │                                         │
+│  │ • Correlación│  │ • P&L       │                                         │
+│  │ • Heatmaps   │  │ • Alertas   │                                         │
+│  └──────────────┘  └──────────────┘                                         │
+│                                                                               │
+│                    HTTP/REST + WebSocket (Real-time)                          │
+└────────────────────────────────────┬──────────────────────────────────────────┘</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Backend API - FastAPI</div>
+            <div class="diagram">┌─────────────────────────────────────────────────────────────────────────────┐
+│                        BACKEND API (FastAPI)                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                    API GATEWAY / ROUTER                             │   │
+│  │  • Autenticación JWT  • Rate Limiting  • CORS  • Validación         │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │   Data      │  │  Strategy   │  │ Backtesting  │  │  Portfolio   │     │
+│  │  Service    │  │  Service    │  │   Service    │  │   Service    │     │
+│  │             │  │             │  │              │  │              │     │
+│  │ POST /extract│ │ CRUD        │  │ POST /run    │  │ GET /analyze │     │
+│  │ GET /data   │  │ Validación  │  │ GET /results │  │ GET /risk    │     │
+│  └──────┬───────┘  └──────────────┘  └──────────────┘  └──────────────┘     │
+│         │                                                                     │
+│         ▼                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │              SERVICIOS DE EXTRACCIÓN                                │   │
+│  │                                                                     │   │
+│  │  ┌──────────────┐          ┌──────────────┐                        │   │
+│  │  │ IB Extractor │          │ MT5 Extractor│                        │   │
+│  │  │             │          │             │                        │   │
+│  │  │ • Conecta IB│          │ • Conecta MT5│                        │   │
+│  │  │ • Extrae    │          │ • Extrae    │                        │   │
+│  │  │ • Bloques   │          │ • Timeframes│                        │   │
+│  │  └──────┬───────┘          └──────┬───────┘                        │   │
+│  │         │                          │                                │   │
+│  │         └──────────┬───────────────┘                                │   │
+│  │                    ▼                                                 │   │
+│  │          ┌──────────────────┐                                       │   │
+│  │          │ Data Processor   │                                       │   │
+│  │          │                  │                                       │   │
+│  │          │ • Limpia datos   │                                       │   │
+│  │          │ • Genera TFs     │                                       │   │
+│  │          │ • Valida         │                                       │   │
+│  │          └────────┬─────────┘                                       │   │
+│  └───────────────────┼─────────────────────────────────────────────────┘   │</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Base de Datos - PostgreSQL + TimescaleDB</div>
+            <div class="diagram">┌─────────────────────────────────────────────────────────────────────────────┐
+│                    BASE DE DATOS (PostgreSQL + TimescaleDB)                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐            │
+│  │  market_data     │  │  strategies     │  │ backtest_results │            │
+│  │                  │  │                 │  │                  │            │
+│  │ • symbol         │  │ • id            │  │ • strategy_id    │            │
+│  │ • timeframe      │  │ • name          │  │ • start_date     │            │
+│  │ • timestamp      │  │ • code          │  │ • end_date       │            │
+│  │ • OHLCV          │  │ • parameters    │  │ • sharpe_ratio   │            │
+│  │ • volume         │  │ • version       │  │ • max_drawdown   │            │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘            │
+│                                                                               │
+│  ┌──────────────────┐  ┌──────────────────┐                                   │
+│  │  trades          │  │ portfolio_       │                                   │
+│  │                  │  │ positions       │                                   │
+│  │ • strategy_id    │  │                  │                                   │
+│  │ • symbol         │  │ • strategy_id    │                                   │
+│  │ • entry/exit     │  │ • symbol         │                                   │
+│  │ • P&L            │  │ • quantity       │                                   │
+│  └──────────────────┘  └──────────────────┘                                   │
+│                                                                               │
+│  Optimizaciones:                                                              │
+│  • TimescaleDB Hypertable (particionado por tiempo)                         │
+│  • Índices compuestos (symbol, timeframe, timestamp)                        │
+│  • Retención automática de datos antiguos                                    │
+└─────────────────────────────────────────────────────────────────────────────┘</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Cache y Tareas Asíncronas - Redis + Celery</div>
+            <div class="diagram">┌─────────────────────────────────────────────────────────────────────────────┐
+│                    CACHE Y TAREAS ASÍNCRONAS (Redis + Celery)               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────┐          ┌──────────────┐                                │
+│  │    Redis     │          │ Celery       │                                │
+│  │              │          │ Workers      │                                │
+│  │ • Cache      │          │              │                                │
+│  │ • Sesiones   │          │ • Backtest   │                                │
+│  │ • Queue      │          │ • Optimización│                               │
+│  └──────────────┘          │ • Data Update│                                │
+│                            └──────────────┘                                │
+└─────────────────────────────────────────────────────────────────────────────┘</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Brokers Externos</div>
+            <div class="diagram">┌─────────────────────────────────────────────────────────────────────────────┐
+│                    BROKERS EXTERNOS                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────────┐                    ┌──────────────────┐              │
+│  │ Interactive      │                    │  MetaTrader 5    │              │
+│  │ Brokers          │                    │                  │              │
+│  │                  │                    │                  │              │
+│  │ • IB API         │                    │ • MT5 API        │              │
+│  │ • TWS/Gateway    │                    │ • Terminal MT5   │              │
+│  │ • Puerto 7497    │                    │ • Símbolos MT5   │              │
+│  │ (Paper Trading)  │                    │                  │              │
+│  └──────────────────┘                    └──────────────────┘              │
+└─────────────────────────────────────────────────────────────────────────────┘</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Motor de Backtesting</div>
+            <div class="diagram">┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MOTOR DE BACKTESTING                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ Backtesting  │  │ TA Libraries │  │ Optimizer    │  │ Robustness   │     │
+│  │ Engine       │  │             │  │              │  │ Tester       │     │
+│  │              │  │ • TA-Lib    │  │ • Grid Search│  │              │     │
+│  │ • Backtrader │  │ • pandas-ta │  │ • GA         │  │ • Walk Forward│   │
+│  │ • Ejecuta    │  │ • Indicadores│  │ • Parámetros │  │ • Monte Carlo│    │
+│  │ • Simula     │  │             │  │              │  │ • Out-sample │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘     │
+└─────────────────────────────────────────────────────────────────────────────┘</div>
+        </div>
+
+        <div class="flow-box">
+            <div class="flow-item">Usuario</div>
+            <span class="arrow">→</span>
+            <div class="flow-item">Frontend</div>
+            <span class="arrow">→</span>
+            <div class="flow-item">API</div>
+            <span class="arrow">→</span>
+            <div class="flow-item">Servicios</div>
+            <span class="arrow">→</span>
+            <div class="flow-item">Base de Datos</div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-title" style="font-size: 1.4em; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">Leyenda de Componentes</div>
+            
+            <div class="legend-item">
+                <div class="legend-title">1. Frontend - Interfaz de Usuario</div>
+                <div class="legend-content">
+                    <strong>Dashboard:</strong> Métricas generales, gráficos de equity curve, resumen de estrategias activas, alertas<br>
+                    <strong>Data Manager:</strong> Formulario para extraer datos, selector de símbolos, configuración de timeframes<br>
+                    <strong>Strategy Builder:</strong> Editor de código Python, validación de sintaxis, preview, versionado<br>
+                    <strong>Backtesting:</strong> Configuración de parámetros, ejecución, visualización de resultados con gráficos interactivos<br>
+                    <strong>Portfolio Analyzer:</strong> Análisis conjunto, correlaciones, heatmaps, métricas de riesgo<br>
+                    <strong>Live Trading:</strong> Monitoreo en tiempo real, historial de órdenes, P&L, alertas
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-title">2. Backend API - Punto de Entrada</div>
+                <div class="legend-content">
+                    <strong>API Gateway:</strong> Autenticación JWT, rate limiting, CORS, validación con Pydantic, logging<br>
+                    <strong>Endpoints Principales:</strong>
+                    <ul>
+                        <li>POST /api/v1/data/extract → Extraer datos desde broker</li>
+                        <li>GET /api/v1/data/data/{symbol} → Consultar datos históricos</li>
+                        <li>POST /api/v1/strategies → Crear/actualizar estrategia</li>
+                        <li>POST /api/v1/backtesting/run → Ejecutar backtest</li>
+                        <li>GET /api/v1/portfolio/analyze → Análisis de portfolio</li>
+                        <li>POST /api/v1/trading/order → Ejecutar orden</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-title">3. Servicios de Extracción - Obtención de Datos</div>
+                <div class="legend-content">
+                    <strong>IB Extractor (ÚNICA fuente de datos históricos):</strong> Conecta a TWS/Gateway, usa IB API, maneja límites con extracción en bloques, callbacks asíncronos. Datos universales de exchanges (CME, NYMEX, etc.)<br>
+                    <strong>Data Processor:</strong> <strong>Normaliza timezones a UTC</strong> (crítico), detecta automáticamente timezone según símbolo (CME→Chicago, NYMEX→NY), limpia datos, genera timeframes (5min, 15min, etc. desde 1min), valida, guarda en PostgreSQL
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-title">4. Base de Datos - Almacenamiento Persistente</div>
+                <div class="legend-content">
+                    <strong>PostgreSQL + TimescaleDB:</strong> Base de datos relacional robusta, extensión para series temporales, hypertables con particionado automático<br>
+                    <strong>Tablas Principales:</strong> market_data, strategies, backtest_results, trades, portfolio_positions<br>
+                    <strong>Optimizaciones:</strong> Índices compuestos, particionado por tiempo, políticas de retención
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-title">5. Motor de Backtesting - Simulación de Estrategias</div>
+                <div class="legend-content">
+                    <strong>Backtesting Engine:</strong> Carga datos, ejecuta estrategia bar por bar, calcula P&L y métricas (Sharpe, Sortino, Max DD)<br>
+                    <strong>TA Libraries:</strong> TA-Lib, pandas-ta con indicadores (MA, RSI, MACD, Bollinger Bands, etc.)<br>
+                    <strong>Optimizer:</strong> Grid Search, Genetic Algorithms para encontrar mejores parámetros<br>
+                    <strong>Robustness Tester:</strong> Walk Forward Analysis, Monte Carlo Simulation, Out-of-sample testing
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-title">6. Trading en Vivo - Ejecución Real</div>
+                <div class="legend-content">
+                    <strong>IB Executor:</strong> Conecta a IB TWS/Gateway, envía órdenes, obtiene posiciones, maneja callbacks<br>
+                    <strong>MT5 Executor:</strong> Conecta a terminal MT5, envía órdenes (Market, Limit, Stop), sincroniza<br>
+                    <strong>Error Handler:</strong> Reintentos exponenciales, fallbacks, logging detallado, alertas<br>
+                    <strong>Position Monitor:</strong> Monitoreo en tiempo real, cálculo de P&L, WebSocket para updates
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-title">7. Infraestructura Auxiliar</div>
+                <div class="legend-content">
+                    <strong>Redis:</strong> Cache de queries frecuentes, manejo de sesiones, cola de mensajes para Celery<br>
+                    <strong>Celery:</strong> Workers para tareas asíncronas (backtesting largo, optimización, actualización de datos), scheduler (Beat)<br>
+                    <strong>WebSocket:</strong> Actualizaciones en tiempo real (precios, posiciones, alertas), push notifications al frontend
+                </div>
+            </div>
+        </div>
+
+        <div class="flow-box">
+            <div style="font-size: 1.1em; margin-bottom: 18px; font-weight: 600;">Flujos de Datos del Sistema</div>
+            <div style="font-size: 0.9em; line-height: 2.2; text-align: left; max-width: 900px; margin: 0 auto;">
+                <strong>1. Extracción de Datos:</strong><br>
+                Usuario → Frontend → API → IB Extractor → IB TWS → Datos → Data Processor → PostgreSQL<br><br>
+                <strong>2. Backtesting:</strong><br>
+                Usuario → Frontend → API → Backtesting Service → PostgreSQL (datos) → Backtesting Engine → Resultados → Frontend<br><br>
+                <strong>3. Trading en Vivo:</strong><br>
+                Estrategia → Trading Service → IB Executor → IB TWS → Orden ejecutada → Position Monitor → WebSocket → Frontend
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

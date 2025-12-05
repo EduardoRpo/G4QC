@@ -1,0 +1,370 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    G4QC TRADING PLATFORM - ARQUITECTURA                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FRONTEND (React + TypeScript)                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  Dashboard   │  │ Data Manager │  │Strategy      │  │ Backtesting  │     │
+│  │              │  │              │  │Builder       │  │              │     │
+│  │ • Métricas   │  │ • Extracción │  │ • Editor     │  │ • Configurar │     │
+│  │ • Gráficos   │  │ • Símbolos   │  │ • Validación │  │ • Resultados │     │
+│  │ • Resumen    │  │ • Timeframes │  │ • Preview    │  │ • Gráficos   │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘     │
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐                                         │
+│  │  Portfolio   │  │ Live Trading │                                         │
+│  │  Analyzer    │  │              │                                         │
+│  │              │  │ • Posiciones │                                         │
+│  │ • Riesgo     │  │ • Órdenes   │                                         │
+│  │ • Correlación│  │ • P&L       │                                         │
+│  │ • Heatmaps   │  │ • Alertas   │                                         │
+│  └──────────────┘  └──────────────┘                                         │
+│                                                                               │
+│                    HTTP/REST + WebSocket (Real-time)                          │
+└────────────────────────────────────┬──────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        BACKEND API (FastAPI)                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                    API GATEWAY / ROUTER                             │   │
+│  │  • Autenticación JWT  • Rate Limiting  • CORS  • Validación         │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │   Data      │  │  Strategy   │  │ Backtesting  │  │  Portfolio   │     │
+│  │  Service    │  │  Service    │  │   Service    │  │   Service    │     │
+│  │             │  │             │  │              │  │              │     │
+│  │ POST /extract│ │ CRUD        │  │ POST /run    │  │ GET /analyze │     │
+│  │ GET /data   │  │ Validación  │  │ GET /results │  │ GET /risk    │     │
+│  └──────┬───────┘  └──────────────┘  └──────────────┘  └──────────────┘     │
+│         │                                                                     │
+│         ▼                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │              SERVICIOS DE EXTRACCIÓN                                │   │
+│  │                                                                     │   │
+│  │  ┌──────────────┐          ┌──────────────┐                        │   │
+│  │  │ IB Extractor │          │ MT5 Extractor│                        │   │
+│  │  │             │          │             │                        │   │
+│  │  │ • Conecta IB│          │ • Conecta MT5│                        │   │
+│  │  │ • Extrae    │          │ • Extrae    │                        │   │
+│  │  │ • Bloques   │          │ • Timeframes│                        │   │
+│  │  └──────┬───────┘          └──────┬───────┘                        │   │
+│  │         │                          │                                │   │
+│  │         └──────────┬───────────────┘                                │   │
+│  │                    ▼                                                 │   │
+│  │          ┌──────────────────┐                                       │   │
+│  │          │ Data Processor   │                                       │   │
+│  │          │                  │                                       │   │
+│  │          │ • Limpia datos   │                                       │   │
+│  │          │ • Genera TFs     │                                       │   │
+│  │          │ • Valida         │                                       │   │
+│  │          └────────┬─────────┘                                       │   │
+│  └───────────────────┼─────────────────────────────────────────────────┘   │
+│                      │                                                       │
+└──────────────────────┼───────────────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    BASE DE DATOS (PostgreSQL + TimescaleDB)                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐            │
+│  │  market_data     │  │  strategies     │  │ backtest_results │            │
+│  │                  │  │                 │  │                  │            │
+│  │ • symbol         │  │ • id            │  │ • strategy_id    │            │
+│  │ • timeframe      │  │ • name          │  │ • start_date     │            │
+│  │ • timestamp      │  │ • code          │  │ • end_date       │            │
+│  │ • OHLCV          │  │ • parameters    │  │ • sharpe_ratio   │            │
+│  │ • volume         │  │ • version       │  │ • max_drawdown   │            │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘            │
+│                                                                               │
+│  ┌──────────────────┐  ┌──────────────────┐                                   │
+│  │  trades          │  │ portfolio_       │                                   │
+│  │                  │  │ positions       │                                   │
+│  │ • strategy_id    │  │                  │                                   │
+│  │ • symbol         │  │ • strategy_id    │                                   │
+│  │ • entry/exit     │  │ • symbol         │                                   │
+│  │ • P&L            │  │ • quantity       │                                   │
+│  └──────────────────┘  └──────────────────┘                                   │
+│                                                                               │
+│  Optimizaciones:                                                              │
+│  • TimescaleDB Hypertable (particionado por tiempo)                         │
+│  • Índices compuestos (symbol, timeframe, timestamp)                        │
+│  • Retención automática de datos antiguos                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    CACHE Y TAREAS ASÍNCRONAS (Redis + Celery)               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────┐          ┌──────────────┐                                │
+│  │    Redis     │          │ Celery       │                                │
+│  │              │          │ Workers      │                                │
+│  │ • Cache      │          │              │                                │
+│  │ • Sesiones   │          │ • Backtest   │                                │
+│  │ • Queue      │          │ • Optimización│                               │
+│  └──────────────┘          │ • Data Update│                                │
+│                            └──────────────┘                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    BROKERS EXTERNOS                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────────┐                    ┌──────────────────┐              │
+│  │ Interactive      │                    │  MetaTrader 5    │              │
+│  │ Brokers          │                    │                  │              │
+│  │                  │                    │                  │              │
+│  │ • IB API         │                    │ • MT5 API        │              │
+│  │ • TWS/Gateway    │                    │ • Terminal MT5   │              │
+│  │ • Puerto 7497    │                    │ • Símbolos MT5   │              │
+│  │ (Paper Trading)  │                    │                  │              │
+│  └──────────────────┘                    └──────────────────┘              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MOTOR DE BACKTESTING                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ Backtesting  │  │ TA Libraries │  │ Optimizer    │  │ Robustness   │     │
+│  │ Engine       │  │             │  │              │  │ Tester       │     │
+│  │              │  │ • TA-Lib    │  │ • Grid Search│  │              │     │
+│  │ • Backtrader │  │ • pandas-ta │  │ • GA         │  │ • Walk Forward│   │
+│  │ • Ejecuta    │  │ • Indicadores│  │ • Parámetros │  │ • Monte Carlo│    │
+│  │ • Simula     │  │             │  │              │  │ • Out-sample │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         LEYENDA DETALLADA                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. FRONTEND - Interfaz de Usuario                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  Dashboard:                                                                  │
+│    • Muestra métricas generales del sistema                                  │
+│    • Gráficos de equity curve de estrategias activas                         │
+│    • Resumen de P&L, Sharpe Ratio, Drawdown                                 │
+│    • Alertas y notificaciones                                               │
+│                                                                               │
+│  Data Manager:                                                               │
+│    • Formulario para extraer datos desde IB/MT5                              │
+│    • Selector de símbolos (ES, NQ, EC, etc.)                                │
+│    • Configuración de timeframes y rangos de fechas                          │
+│    • Historial de extracciones realizadas                                    │
+│    • Visualización de datos almacenados                                     │
+│                                                                               │
+│  Strategy Builder:                                                           │
+│    • Editor de código Python con syntax highlighting                         │
+│    • Plantillas de estrategias predefinidas                                  │
+│    • Validación de sintaxis en tiempo real                                   │
+│    • Preview de la estrategia antes de guardar                               │
+│    • Versionado de estrategias                                              │
+│                                                                               │
+│  Backtesting:                                                                │
+│    • Selección de estrategia y rango de fechas                               │
+│    • Configuración de capital inicial y comisiones                           │
+│    • Ejecución de backtest (puede ser asíncrono)                            │
+│    • Visualización de resultados:                                            │
+│      - Equity curve interactiva                                             │
+│      - Métricas (Sharpe, Sortino, Max DD, Win Rate)                        │
+│      - Gráfico de trades                                                    │
+│      - Drawdown chart                                                       │
+│                                                                               │
+│  Portfolio Analyzer:                                                         │
+│    • Análisis conjunto de múltiples estrategias                             │
+│    • Matriz de correlación entre estrategias                                │
+│    • Heatmaps de performance                                                │
+│    • Cálculo de métricas de riesgo (VaR, CVaR)                              │
+│    • Optimización de asignación de capital                                  │
+│                                                                               │
+│  Live Trading:                                                               │
+│    • Monitoreo en tiempo real de posiciones abiertas                        │
+│    • Historial de órdenes ejecutadas                                       │
+│    • P&L en tiempo real (realizado y no realizado)                          │
+│    • Alertas de eventos importantes                                         │
+│    • Control de ejecución (pausar/reanudar estrategias)                     │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. BACKEND API - Punto de Entrada                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  API Gateway:                                                                │
+│    • Autenticación: JWT tokens, validación de sesiones                      │
+│    • Rate Limiting: Prevenir abuso, límites por usuario/IP                  │
+│    • CORS: Configuración para permitir requests del frontend                 │
+│    • Validación: Pydantic models para validar todos los inputs               │
+│    • Logging: Registro de todas las requests para auditoría                 │
+│                                                                               │
+│  Endpoints Principales:                                                      │
+│    • POST /api/v1/data/extract      → Extraer datos desde broker            │
+│    • GET  /api/v1/data/data/{symbol} → Consultar datos históricos           │
+│    • POST /api/v1/strategies         → Crear/actualizar estrategia           │
+│    • GET  /api/v1/strategies/{id}    → Obtener estrategia                    │
+│    • POST /api/v1/backtesting/run   → Ejecutar backtest                     │
+│    • GET  /api/v1/backtesting/{id}  → Obtener resultados                   │
+│    • GET  /api/v1/portfolio/analyze → Análisis de portfolio                │
+│    • POST /api/v1/trading/order     → Ejecutar orden                        │
+│    • GET  /api/v1/trading/positions → Obtener posiciones                   │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. SERVICIOS DE EXTRACCIÓN - Obtención de Datos                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  IB Extractor (ÚNICA fuente de datos históricos):                           │
+│    • Se conecta a TWS (Trader Workstation) o IB Gateway                     │
+│    • Usa IB API (ibapi) para solicitar datos históricos                      │
+│    • Maneja límites de IB: extrae en bloques (ej: 1 mes por vez)            │
+│    • Callbacks asíncronos: historicalData(), historicalDataEnd()            │
+│    • Manejo de errores: reconexión automática, timeouts                       │
+│    • Soporta múltiples instrumentos: ES, NQ, EC, 6B, RB, GC, LE, HE, etc.   │
+│    • Datos universales: acceso directo a exchanges (CME, NYMEX, etc.)        │
+│                                                                               │
+│  Data Processor:                                                             │
+│    • Normaliza timezones: convierte todos los datos a UTC (CRÍTICO)         │
+│    • Detecta timezone automáticamente según símbolo:                         │
+│      - CME (ES, NQ): America/Chicago → UTC                                   │
+│      - NYMEX/COMEX (GC, CL, RB): America/New_York → UTC                     │
+│    • Limpia datos: elimina duplicados, valida rangos                        │
+│    • Genera timeframes: desde 1min crea 5min, 15min, 30min, 1h, 4h, 1d      │
+│    • Usa pandas resampling para agregar datos                                │
+│    • Guarda en PostgreSQL evitando duplicados                                │
+│    • Optimiza almacenamiento: solo guarda lo necesario                      │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4. BASE DE DATOS - Almacenamiento Persistente                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  PostgreSQL + TimescaleDB:                                                   │
+│    • PostgreSQL 15+: Base de datos relacional robusta                       │
+│    • TimescaleDB: Extensión para series temporales                          │
+│    • Hypertables: Particionado automático por tiempo                        │
+│    • Queries optimizadas: índices compuestos para búsquedas rápidas          │
+│                                                                               │
+│  Tablas Principales:                                                         │
+│    • market_data: Datos OHLCV de todos los símbolos/timeframes             │
+│    • strategies: Código y metadatos de estrategias                         │
+│    • backtest_results: Resultados de backtests ejecutados                   │
+│    • trades: Historial de todos los trades (backtest y live)                │
+│    • portfolio_positions: Posiciones actuales en trading en vivo            │
+│                                                                               │
+│  Optimizaciones:                                                             │
+│    • Índices: (symbol, timeframe, timestamp) para queries rápidas           │
+│    • Particionado: TimescaleDB divide datos por tiempo automáticamente      │
+│    • Retención: Políticas para eliminar datos antiguos                       │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 5. MOTOR DE BACKTESTING - Simulación de Estrategias                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  Backtesting Engine:                                                         │
+│    • Carga datos históricos desde PostgreSQL                                 │
+│    • Ejecuta estrategia bar por bar simulando órdenes                       │
+│    • Calcula P&L, comisiones, slippage                                      │
+│    • Genera métricas: Sharpe, Sortino, Max Drawdown, Win Rate, etc.        │
+│    • Opciones: Backtrader (flexible) o motor custom (optimizado)            │
+│                                                                               │
+│  TA Libraries:                                                               │
+│    • TA-Lib: Librería estándar de indicadores técnicos                      │
+│    • pandas-ta: Indicadores técnicos para pandas                             │
+│    • Indicadores: MA, EMA, RSI, MACD, Bollinger Bands, ATR, etc.           │
+│                                                                               │
+│  Optimizer:                                                                  │
+│    • Grid Search: Busca exhaustiva en espacio de parámetros                 │
+│    • Genetic Algorithms: Optimización evolutiva                              │
+│    • Encuentra mejores parámetros para maximizar Sharpe/Return               │
+│                                                                               │
+│  Robustness Tester:                                                          │
+│    • Walk Forward: Prueba en múltiples períodos out-of-sample               │
+│    • Monte Carlo: Simula múltiples escenarios aleatorios                     │
+│    • Out-of-sample: Valida en datos no usados para optimización            │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6. TRADING EN VIVO - Ejecución Real                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  IB Executor:                                                                │
+│    • Conecta a IB TWS/Gateway para ejecutar órdenes                         │
+│    • placeOrder(): Envía órdenes al broker                                  │
+│    • reqPositions(): Obtiene posiciones actuales                           │
+│    • Callbacks: orderStatus(), execDetails() para updates                  │
+│    • Manejo de errores: reintentos, validación de órdenes                   │
+│                                                                               │
+│  MT5 Executor:                                                               │
+│    • Conecta a terminal MT5 para ejecutar órdenes                           │
+│    • order_send(): Envía órdenes (Market, Limit, Stop)                      │
+│    • positions_get(): Obtiene posiciones                                    │
+│    • Sincronización con terminal MT5                                        │
+│                                                                               │
+│  Error Handler:                                                              │
+│    • Reintentos exponenciales para errores temporales                       │
+│    • Fallbacks: acciones alternativas si falla ejecución                    │
+│    • Logging detallado: registra todos los eventos                          │
+│    • Alertas: notifica errores críticos                                     │
+│                                                                               │
+│  Position Monitor:                                                           │
+│    • Monitoreo en tiempo real de posiciones                                  │
+│    • Cálculo de P&L (realizado y no realizado)                              │
+│    • WebSocket: actualizaciones push al frontend                             │
+│    • Alertas: notificaciones de eventos importantes                         │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 7. INFRAESTRUCTURA AUXILIAR                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  Redis:                                                                      │
+│    • Cache: Almacena resultados de queries frecuentes                        │
+│    • Sesiones: Manejo de sesiones de usuario                                │
+│    • Queue: Cola de mensajes para Celery                                    │
+│                                                                               │
+│  Celery:                                                                     │
+│    • Workers: Procesan tareas asíncronas en background                      │
+│    • Tasks: Backtesting largo, optimización, actualización de datos         │
+│    • Beat: Scheduler para tareas programadas                                │
+│                                                                               │
+│  WebSocket:                                                                  │
+│    • Actualizaciones en tiempo real: precios, posiciones, alertas           │
+│    • Push notifications al frontend                                          │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    FLUJO DE DATOS COMPLETO                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+1. EXTRACCIÓN:
+   Usuario → Frontend → API → IB Extractor → IB TWS → Datos → Data Processor → PostgreSQL
+
+2. BACKTESTING:
+   Usuario → Frontend → API → Backtesting Service → PostgreSQL (datos) → 
+   Backtesting Engine → Resultados → PostgreSQL (resultados) → Frontend (gráficos)
+
+3. TRADING EN VIVO:
+   Estrategia → Trading Service → IB Executor → IB TWS → Orden ejecutada → 
+   Position Monitor → WebSocket → Frontend (actualización en tiempo real)
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         FIN DEL DIAGRAMA                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
