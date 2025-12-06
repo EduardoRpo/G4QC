@@ -5,6 +5,10 @@
 
 set -e  # Salir si hay algún error
 
+# Configurar modo no interactivo para evitar diálogos
+export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_PRIORITY=critical
+
 echo "=========================================="
 echo "INSTALACIÓN G4QC - SERVIDOR"
 echo "=========================================="
@@ -37,11 +41,11 @@ if command -v docker &> /dev/null; then
 else
     echo "Instalando Docker..."
     
-    # Actualizar paquetes
-    apt update
+    # Actualizar paquetes (modo no interactivo)
+    apt update -y
     
-    # Instalar dependencias
-    apt install -y ca-certificates curl gnupg lsb-release
+    # Instalar dependencias (modo no interactivo)
+    apt install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" ca-certificates curl gnupg lsb-release
     
     # Agregar clave GPG oficial de Docker
     mkdir -p /etc/apt/keyrings
@@ -52,9 +56,9 @@ else
       "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
       $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
     
-    # Instalar Docker Engine
-    apt update
-    apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    # Instalar Docker Engine (modo no interactivo)
+    apt update -y
+    apt install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     
     # Iniciar y habilitar Docker
     systemctl start docker
