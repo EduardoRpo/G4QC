@@ -59,20 +59,12 @@ async def extract_data(
     **Nota**: Requiere que ibapi esté instalado y que IB TWS/Gateway esté ejecutándose.
     """
     processor = DataProcessor(db)
+    extractor = None
     
     try:
         # Intentar crear el extractor (verificará si ibapi está instalado)
         extractor = IBDataExtractor()
-    except ImportError as e:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "error": "ibapi no está instalado",
-                "message": str(e),
-                "solution": "Instala ibapi con: docker-compose exec backend pip install ibapi",
-                "note": "También necesitas tener Interactive Brokers TWS o IB Gateway ejecutándose"
-            }
-        )
+        
         # Extraer datos
         df = extractor.extract_historical_data(
             symbol=request.symbol,
