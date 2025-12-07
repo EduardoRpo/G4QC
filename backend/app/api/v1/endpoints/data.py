@@ -68,13 +68,19 @@ async def extract_data(
         contract_month = request.contract_month
         if not contract_month:
             # Calcular el próximo mes de vencimiento (formato YYYYMM)
+            # Para futuros, normalmente se usa el "front month" (próximo disponible)
             from datetime import datetime
             now = datetime.utcnow()
-            # Próximo mes
-            if now.month == 12:
+            # Usar el mes actual primero, si estamos después del día 15, usar el próximo mes
+            if now.day > 15 and now.month < 12:
+                # Después del día 15, usar próximo mes
+                contract_month = f"{now.year}{now.month + 1:02d}"
+            elif now.day > 15 and now.month == 12:
+                # Diciembre después del día 15, usar enero del año siguiente
                 contract_month = f"{now.year + 1}01"
             else:
-                contract_month = f"{now.year}{now.month + 1:02d}"
+                # Antes del día 15, usar el mes actual
+                contract_month = f"{now.year}{now.month:02d}"
         
         # Intentar crear el extractor (verificará si ibapi está instalado)
         extractor = IBDataExtractor()
