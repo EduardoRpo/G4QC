@@ -44,6 +44,7 @@ class IBDataExtractor(EClient, EWrapper):
         self.client_id = client_id or settings.IB_CLIENT_ID
         self.datos_historicos: Dict[int, List] = {}
         self.objetos_datos: Dict[int, List] = {}
+        self.error_en_req: Dict[int, bool] = {}  # Registrar errores por reqId
         self.evento = threading.Event()
         self.connected = False
         self.api_thread: Optional[threading.Thread] = None
@@ -92,8 +93,13 @@ class IBDataExtractor(EClient, EWrapper):
     def error(self, reqId, code, msg):
         """Callback para errores"""
         # Ignorar mensajes informativos de conexión
-        if code not in [2104, 2106, 2158]:
+        if code not in [2104, 2106, 2107, 2158]:
             print(f"❗ Error reqId={reqId}, code={code}, msg={msg}")
+            # Error 321: necesita contract_month o local symbol
+            if code == 321:
+                self.error_en_req = getattr(self, 'error_en_req', {})
+                self.error_en_req[reqId] = True
+                self.evento.set()  # Desbloquear para que no se quede esperando
     
     def create_contract(
         self, 
@@ -175,6 +181,7 @@ class IBDataExtractor(EClient, EWrapper):
         # Limpiar datos anteriores
         self.datos_historicos.clear()
         self.objetos_datos.clear()
+        self.error_en_req.clear()
         all_dataframes = []
         
         # Extraer en bloques
@@ -200,6 +207,12 @@ class IBDataExtractor(EClient, EWrapper):
             if not self.evento.wait(timeout=60):
                 print(f"⚠️ Timeout esperando datos para bloque {i+1}")
             self.evento.clear()
+            
+            # Verificar si hubo error en este reqId
+            if (i+1) in self.error_en_req and self.error_en_req[i+1]:
+                error_msg = f"Error al solicitar datos para bloque {i+1}. Verifica el contract_month."
+                print(f"❌ {error_msg}")
+                raise ValueError(error_msg)
             
             # Procesar datos recibidos
             if (i+1) in self.datos_historicos and len(self.datos_historicos[i+1]) > 0:

@@ -63,6 +63,19 @@ async def extract_data(
     extractor = None
     
     try:
+        # Calcular contract_month automáticamente si no se proporciona
+        # Para futuros, necesitamos especificar el mes de vencimiento
+        contract_month = request.contract_month
+        if not contract_month:
+            # Calcular el próximo mes de vencimiento (formato YYYYMM)
+            from datetime import datetime
+            now = datetime.utcnow()
+            # Próximo mes
+            if now.month == 12:
+                contract_month = f"{now.year + 1}01"
+            else:
+                contract_month = f"{now.year}{now.month + 1:02d}"
+        
         # Intentar crear el extractor (verificará si ibapi está instalado)
         extractor = IBDataExtractor()
         
@@ -71,14 +84,18 @@ async def extract_data(
             symbol=request.symbol,
             duration=request.duration,
             bar_size=request.bar_size,
-            contract_month=request.contract_month,
+            contract_month=contract_month,
             num_blocks=request.num_blocks
         )
         
         if df.empty:
             raise HTTPException(
                 status_code=404,
-                detail=f"No se obtuvieron datos para {request.symbol}"
+                detail={
+                    "error": "No se obtuvieron datos",
+                    "message": f"No se obtuvieron datos para {request.symbol} con contract_month={contract_month}",
+                    "suggestion": "Verifica que el símbolo y el mes de vencimiento sean correctos"
+                }
             )
         
         # Guardar en base de datos si se solicita
@@ -122,6 +139,16 @@ async def extract_data(
                 "error": "No se puede conectar a Interactive Brokers",
                 "message": str(e),
                 "solution": "Asegúrate de que IB TWS o IB Gateway esté ejecutándose en el puerto configurado"
+            }
+        )
+    except ValueError as e:
+        # Error de validación del contrato (ej: falta contract_month o error 321)
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "Error de validación del contrato",
+                "message": str(e),
+                "solution": "Especifica un contract_month válido (ej: '202512' para diciembre 2025) o verifica el símbolo"
             }
         )
     except Exception as e:
