@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from app.core.database import get_db
+from app.core.config import settings
 from app.services.data_extraction.ib_extractor import IBDataExtractor
 from app.models.data import MarketData
 from app.services.data_extraction.data_processor import DataProcessor
@@ -124,9 +125,16 @@ async def extract_data(
             }
         )
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
         raise HTTPException(
             status_code=500,
-            detail=f"Error al extraer datos: {str(e)}"
+            detail={
+                "error": "Error al extraer datos",
+                "message": str(e) if str(e) else "Error desconocido",
+                "type": type(e).__name__,
+                "traceback": error_trace if settings.DEBUG else None
+            }
         )
     finally:
         if 'extractor' in locals():
