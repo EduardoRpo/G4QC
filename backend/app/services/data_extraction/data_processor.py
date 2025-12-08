@@ -98,6 +98,7 @@ class DataProcessor:
         if source_timezone is None and symbol.upper() in exchange_timezones:
             df = self.normalize_timezone(df, exchange_timezones[symbol.upper()])
         
+        # Preparar registros para UPSERT
         records = []
         for _, row in df.iterrows():
             # Asegurar que el timestamp es timezone-aware en UTC
@@ -107,33 +108,42 @@ class DataProcessor:
             elif timestamp.tzinfo != pytz.UTC:
                 timestamp = timestamp.astimezone(pytz.UTC)
             
-            # Verificar si el registro ya existe
-            existing = self.db.query(MarketData).filter(
-                MarketData.symbol == symbol.upper(),
-                MarketData.timeframe == timeframe.lower(),
-                MarketData.timestamp == timestamp
-            ).first()
-            
-            if not existing:
-                records.append(MarketData(
-                    symbol=symbol.upper(),
-                    timeframe=timeframe.lower(),
-                    timestamp=timestamp,
-                    open=float(row['Open']),
-                    high=float(row['High']),
-                    low=float(row['Low']),
-                    close=float(row['Close']),
-                    volume=int(row['Volume']),
-                    count=int(row.get('Count', 0))
-                ))
+            records.append({
+                'symbol': symbol.upper(),
+                'timeframe': timeframe.lower(),
+                'timestamp': timestamp,
+                'open': float(row['Open']),
+                'high': float(row['High']),
+                'low': float(row['Low']),
+                'close': float(row['Close']),
+                'volume': int(row['Volume']),
+                'count': int(row.get('Count', 0))
+            })
         
-        if records:
-            self.db.bulk_save_objects(records)
-            self.db.commit()
-            print(f"✅ Guardados {len(records)} registros para {symbol} ({timeframe}) - Timezone normalizado a UTC")
-            return len(records)
+        if not records:
+            return 0
         
-        return 0
+        # Usar UPSERT (INSERT ... ON CONFLICT DO NOTHING) para prevenir duplicados
+        # Esto es thread-safe y eficiente
+        from sqlalchemy.dialects.postgresql import insert
+        
+        stmt = insert(MarketData).values(records)
+        stmt = stmt.on_conflict_do_nothing(
+            index_elements=['symbol', 'timeframe', 'timestamp']
+        )
+        
+        result = self.db.execute(stmt)
+        self.db.commit()
+        
+        # Contar cuántos registros se insertaron realmente
+        inserted_count = result.rowcount if hasattr(result, 'rowcount') else len(records)
+        
+        print(f"✅ Guardados {inserted_count} registros nuevos para {symbol} ({timeframe}) - Timezone normalizado a UTC")
+        if inserted_count < len(records):
+            skipped = len(records) - inserted_count
+            print(f"   ⏭️  {skipped} registros ya existían (duplicados ignorados)")
+        
+        return inserted_count
     
     def generate_timeframes(self, symbol: str, source_timeframe: str = "1min"):
         """
@@ -220,4 +230,120 @@ class DataProcessor:
                 self.db.bulk_save_objects(records)
                 self.db.commit()
                 print(f"✅ Generado timeframe {tf_name}: {len(records)} registros para {symbol}")
+    
+    def update_timeframes_incremental(self, symbol: str, source_timeframe: str = "1min"):
+        """
+        Actualizar timeframes solo con datos nuevos (incremental)
+        Más eficiente que regenerar todo desde cero
+        
+        Args:
+            symbol: Símbolo del instrumento
+            source_timeframe: Timeframe fuente (debe ser "1min")
+        """
+        if source_timeframe != "1min":
+            print(f"⚠️ Solo se pueden actualizar timeframes desde 1min")
+            return
+        
+        from sqlalchemy import func
+        
+        # Timeframes a generar
+        timeframes = {
+            '5min': '5T',
+            '15min': '15T',
+            '30min': '30T',
+            '1h': '1H',
+            '4h': '4H',
+            '1d': '1D'
+        }
+        
+        # Obtener el último timestamp procesado para cada timeframe
+        last_timestamps = {}
+        for tf_name in timeframes.keys():
+            last = self.db.query(func.max(MarketData.timestamp)).filter(
+                MarketData.symbol == symbol.upper(),
+                MarketData.timeframe == tf_name
+            ).scalar()
+            last_timestamps[tf_name] = last or datetime(1970, 1, 1, tzinfo=pytz.UTC)
+        
+        # Obtener el mínimo de los últimos timestamps para saber desde dónde procesar
+        min_last_timestamp = min(last_timestamps.values()) if last_timestamps.values() else datetime(1970, 1, 1, tzinfo=pytz.UTC)
+        
+        # Obtener solo datos de 1min NUEVOS (después del último procesado)
+        new_data = self.db.query(MarketData).filter(
+            MarketData.symbol == symbol.upper(),
+            MarketData.timeframe == "1min",
+            MarketData.timestamp > min_last_timestamp
+        ).order_by(MarketData.timestamp).all()
+        
+        if not new_data:
+            print(f"⏭️ No hay datos nuevos de 1min para {symbol}, omitiendo actualización de timeframes")
+            return
+        
+        # Convertir a DataFrame
+        df = pd.DataFrame([{
+            'Date': d.timestamp,
+            'Open': d.open,
+            'High': d.high,
+            'Low': d.low,
+            'Close': d.close,
+            'Volume': d.volume,
+            'Count': d.count
+        } for d in new_data])
+        
+        if df.empty:
+            return
+        
+        df.set_index('Date', inplace=True)
+        
+        # Actualizar cada timeframe solo con datos nuevos
+        for tf_name, tf_resample in timeframes.items():
+            # Resamplear solo los datos nuevos
+            df_resampled = df.resample(tf_resample).agg({
+                'Open': 'first',
+                'High': 'max',
+                'Low': 'min',
+                'Close': 'last',
+                'Volume': 'sum',
+                'Count': 'sum'
+            }).dropna()
+            
+            if df_resampled.empty:
+                continue
+            
+            # Filtrar solo los timestamps que son nuevos para este timeframe
+            existing_timestamps = set(
+                row[0] for row in self.db.query(MarketData.timestamp).filter(
+                    MarketData.symbol == symbol.upper(),
+                    MarketData.timeframe == tf_name
+                ).all()
+            )
+            
+            # Preparar registros nuevos usando UPSERT
+            records = []
+            for timestamp, row in df_resampled.iterrows():
+                if timestamp not in existing_timestamps:
+                    records.append({
+                        'symbol': symbol.upper(),
+                        'timeframe': tf_name,
+                        'timestamp': timestamp,
+                        'open': float(row['Open']),
+                        'high': float(row['High']),
+                        'low': float(row['Low']),
+                        'close': float(row['Close']),
+                        'volume': int(row['Volume']),
+                        'count': int(row['Count'])
+                    })
+            
+            if records:
+                # Usar UPSERT para prevenir duplicados
+                from sqlalchemy.dialects.postgresql import insert
+                
+                stmt = insert(MarketData).values(records)
+                stmt = stmt.on_conflict_do_nothing(
+                    index_elements=['symbol', 'timeframe', 'timestamp']
+                )
+                self.db.execute(stmt)
+                self.db.commit()
+                
+                print(f"✅ Actualizado timeframe {tf_name}: {len(records)} registros nuevos para {symbol}")
 

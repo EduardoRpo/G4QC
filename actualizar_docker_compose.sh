@@ -1,3 +1,13 @@
+#!/bin/bash
+# Script para actualizar docker-compose.yml con IB Gateway
+
+cd /opt/proyectos/G4QC
+
+# Hacer backup
+cp docker-compose.yml docker-compose.yml.backup
+
+# Crear el nuevo archivo docker-compose.yml con IB Gateway
+cat > docker-compose.yml << 'DOCKEREOF'
 services:
   postgres:
     image: timescale/timescaledb:latest-pg15
@@ -28,9 +38,6 @@ services:
       retries: 5
 
   ibgateway:
-    # ⚠️ IMPORTANTE: Configurado para PAPER TRADING (cuenta de prueba)
-    # ❌ NUNCA cambiar a "Live Trading" durante desarrollo/pruebas
-    # 📍 Puerto 7497 = Paper Trading | Puerto 7496 = Live Trading (dinero real)
     image: heshiming/ibga:latest
     container_name: g4qc_ibgateway
     restart: unless-stopped
@@ -40,12 +47,12 @@ services:
       - IB_REGION=America
       - IB_TIMEZONE=Europe/Berlin
       - IB_LOGINTAB=IB API
-      - IB_LOGINTYPE=Paper Trading  # ✅ PAPER TRADING - No usa dinero real
+      - IB_LOGINTYPE=Paper Trading
       - IB_LOGOFF=11:55 PM
       - IB_APILOG=data
       - IB_LOGLEVEL=Error
     ports:
-      - "7497:4000"  # ✅ Puerto 7497 = Paper Trading (simulado, sin riesgo)
+      - "7497:4001"
     volumes:
       - ibgateway_data:/home/ibg
       - ibgateway_settings:/home/ibg_settings
@@ -63,7 +70,7 @@ services:
       DATABASE_URL: postgresql://g4qc:g4qc_dev@postgres:5432/g4qc_db
       REDIS_URL: redis://redis:6379
       IB_HOST: ${IB_HOST:-ibgateway}
-      IB_PORT: ${IB_PORT:-4000}  # Puerto interno del contenedor (mapeado a 7497 = Paper Trading)
+      IB_PORT: ${IB_PORT:-4001}
       IB_CLIENT_ID: ${IB_CLIENT_ID:-1}
       DEBUG: ${DEBUG:-False}
     depends_on:
@@ -79,4 +86,9 @@ volumes:
   postgres_data:
   ibgateway_data:
   ibgateway_settings:
+DOCKEREOF
+
+echo "✅ Archivo docker-compose.yml actualizado con IB Gateway"
+echo "📋 Verificando configuración..."
+docker compose config --services
 

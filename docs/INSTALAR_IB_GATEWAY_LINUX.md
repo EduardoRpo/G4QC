@@ -1,539 +1,445 @@
-# 🐧 Instalar IB Gateway en Linux - Guía Completa
+# 🚀 Instalación y Configuración de IB Gateway en Linux
 
-## 🎯 Resumen
+## 📋 Resumen
 
-En Linux puedes hacer todo desde la terminal usando comandos. Esta guía te muestra cómo.
-
----
-
-## 📋 Parte 1: Crear Cuenta Paper Trading (Mismo Proceso)
-
-**Nota:** Crear la cuenta Paper Trading se hace desde el navegador web (igual que en Windows).
-
-### Opción A: Desde Navegador en Linux
-
-```bash
-# Abre Firefox o tu navegador favorito
-firefox https://www.interactivebrokers.com/en/index.php?f=16042
-
-# O si usas Chrome/Chromium
-google-chrome https://www.interactivebrokers.com/en/index.php?f=16042
-
-# O si usas un navegador basado en texto (lynx, w3m)
-lynx https://www.interactivebrokers.com/en/index.php?f=16042
-```
-
-**O simplemente:**
-1. Abre tu navegador en Linux
-2. Ve a: https://www.interactivebrokers.com/en/index.php?f=16042
-3. Busca "Paper Trading Account" y créala
-4. Recibe Username y Password
-
-**El proceso es igual que en Windows (es una página web).**
+IB Gateway es la versión sin interfaz gráfica de Interactive Brokers TWS, ideal para servidores Linux. Se conecta a Interactive Brokers y permite acceso a través de la API.
 
 ---
 
-## 📥 Parte 2: Descargar IB Gateway para Linux
+## 🔧 Requisitos Previos
 
-### Paso 1: Identificar tu Sistema
-
-```bash
-# Ver arquitectura de tu sistema
-uname -m
-
-# Ver distribución Linux
-cat /etc/os-release
-```
-
-**Resultados típicos:**
-- `x86_64` = 64 bits (la mayoría)
-- `i386` o `i686` = 32 bits (menos común)
+- **Java**: IB Gateway requiere Java 8 o superior
+- **Cuenta de Interactive Brokers**: Paper Trading o Live
+- **Acceso root o sudo** en el servidor
 
 ---
 
-### Paso 2: Descargar IB Gateway
+## 📥 Paso 1: Instalar Java
 
-**Opción A: Descargar desde Terminal (wget)**
+IB Gateway requiere Java. Verifica si ya está instalado:
 
 ```bash
-# Crear directorio para descargas
-mkdir -p ~/ibgateway
-cd ~/ibgateway
-
-# Descargar IB Gateway para Linux (última versión)
-wget https://download2.interactivebrokers.com/installers/ibgateway-stable-latest-linux-x64.sh
-
-# O si tu sistema es 32 bits
-# wget https://download2.interactivebrokers.com/installers/ibgateway-stable-latest-linux-i686.sh
+java -version
 ```
 
-**Opción B: Descargar con curl**
+Si no está instalado, instálalo:
 
 ```bash
-cd ~/ibgateway
+# Ubuntu/Debian
+apt update
+apt install -y openjdk-11-jre-headless
 
-# Descargar con curl
-curl -L -o ibgateway-stable-latest-linux-x64.sh \
-  https://download2.interactivebrokers.com/installers/ibgateway-stable-latest-linux-x64.sh
-```
+# O para Java 17 (recomendado)
+apt install -y openjdk-17-jre-headless
 
-**Opción C: Buscar la URL más reciente**
-
-```bash
-# Puedes buscar la URL más reciente en el sitio web de IB
-# O usar esta URL genérica (reemplaza VERSION con la versión actual)
-wget https://download2.interactivebrokers.com/installers/ibgateway-stable-VERSION-linux-x64.sh
+# Verificar instalación
+java -version
 ```
 
 ---
 
-### Paso 3: Dar Permisos de Ejecución
+## 📥 Paso 2: Descargar IB Gateway
+
+### Opción A: Descarga Manual
+
+1. **Visita el sitio de Interactive Brokers:**
+   - Paper Trading: https://www.interactivebrokers.com/en/index.php?f=16457
+   - Live Trading: https://www.interactivebrokers.com/en/index.php?f=16457
+
+2. **Descarga IB Gateway para Linux:**
+   - Busca "IB Gateway" en la sección de descargas
+   - Selecciona la versión para Linux
+   - Descarga el archivo `.sh` (ej: `ibgateway-stable-linux-x64.sh`)
+
+3. **Transferir al servidor:**
+   ```bash
+   # Desde tu máquina local (si descargaste allí)
+   scp ibgateway-stable-linux-x64.sh root@45.137.192.196:/tmp/
+   ```
+
+### Opción B: Descarga Directa (si tienes el enlace)
 
 ```bash
-cd ~/ibgateway
+# Crear directorio para IB Gateway
+mkdir -p /opt/ibgateway
+cd /opt/ibgateway
 
-# Dar permisos de ejecución al instalador
-chmod +x ibgateway-stable-latest-linux-x64.sh
+# Descargar (reemplaza la URL con la versión actual)
+wget https://download2.interactivebrokers.com/installers/ibgateway-stable/ibgateway-stable-linux-x64.sh
 
-# Verificar que tiene permisos
-ls -lh ibgateway-stable-latest-linux-x64.sh
-```
-
-**Deberías ver algo como:**
-```
--rwxr-xr-x 1 usuario usuario 50M fecha ibgateway-stable-latest-linux-x64.sh
-```
-(La `x` significa ejecutable)
-
----
-
-## 🔧 Parte 3: Instalar IB Gateway
-
-### Instalación Interactiva (Recomendado)
-
-```bash
-cd ~/ibgateway
-
-# Ejecutar instalador
-./ibgateway-stable-latest-linux-x64.sh
-```
-
-**El instalador te preguntará:**
-- Dónde instalar (default: `~/Jts`)
-- Si quieres crear accesos directos
-- Etc.
-
-**Sigue las instrucciones en pantalla.**
-
----
-
-### Instalación Silenciosa (Sin Preguntas)
-
-```bash
-cd ~/ibgateway
-
-# Instalación silenciosa (usa valores por defecto)
-./ibgateway-stable-latest-linux-x64.sh -q
-
-# O especificar directorio de instalación
-./ibgateway-stable-latest-linux-x64.sh -q -dir ~/IBGateway
-```
-
-**Después de la instalación, IB Gateway estará en:**
-- Default: `~/Jts/ibgateway` o `~/IBGateway/ibgateway`
-
----
-
-## 🚀 Parte 4: Ejecutar IB Gateway
-
-### Ejecutar desde Terminal
-
-```bash
-# Navegar al directorio de instalación
-cd ~/Jts
-
-# Ejecutar IB Gateway
-./ibgateway
-
-# O si está en otro directorio
-cd ~/IBGateway
-./ibgateway
-```
-
-**Primera vez:**
-- Se abrirá una ventana de login
-- Ingresa tu Username y Password de Paper Trading
-- Selecciona "Paper Trading" si te pregunta
-
----
-
-### Ejecutar en Background (Segundo Plano)
-
-```bash
-# Ejecutar en background
-cd ~/Jts
-./ibgateway > /dev/null 2>&1 &
-
-# O guardar logs
-./ibgateway > ~/ibgateway.log 2>&1 &
-
-# Ver proceso
-ps aux | grep ibgateway
+# Dar permisos de ejecución
+chmod +x ibgateway-stable-linux-x64.sh
 ```
 
 ---
 
-### Ejecutar como Servicio (Opcional - Avanzado)
-
-Puedes crear un servicio systemd para que IB Gateway se inicie automáticamente:
-
-**Crear archivo de servicio:**
+## 🔧 Paso 3: Instalar IB Gateway
 
 ```bash
-sudo nano /etc/systemd/system/ibgateway.service
+cd /opt/ibgateway
+
+# Ejecutar instalador (modo no interactivo)
+./ibgateway-stable-linux-x64.sh -q
+
+# O si necesitas especificar el directorio de instalación:
+./ibgateway-stable-linux-x64.sh -q -dir /opt/ibgateway
 ```
 
-**Contenido:**
+Esto instalará IB Gateway en `/opt/ibgateway` (o el directorio que especifiques).
 
-```ini
+---
+
+## ⚙️ Paso 4: Configurar IB Gateway
+
+### 4.1. Crear archivo de configuración
+
+IB Gateway usa archivos de configuración para ejecutarse sin interfaz gráfica:
+
+```bash
+# Crear directorio de configuración
+mkdir -p /opt/ibgateway/ibgateway
+
+# Crear archivo de configuración
+cat > /opt/ibgateway/ibgateway/ibgateway.ini << 'EOF'
+# IB Gateway Configuration
+# Este archivo configura IB Gateway para ejecutarse en modo headless
+
+[Settings]
+# Habilitar API
+EnableAPI=true
+
+# Puerto para API (7497 = Paper Trading, 7496 = Live Trading)
+ApiPort=7497
+
+# Permitir conexiones desde localhost
+TrustedIPs=127.0.0.1
+
+# Modo headless (sin interfaz gráfica)
+Headless=true
+
+# Credenciales (se pueden dejar vacías y se pedirán al iniciar)
+# Username=
+# Password=
+
+# Modo de trading (Paper o Live)
+# Paper=Y para Paper Trading, Paper=N para Live Trading
+Paper=Y
+EOF
+```
+
+### 4.2. Crear archivo de credenciales (opcional pero recomendado)
+
+**⚠️ IMPORTANTE**: Este archivo contiene credenciales sensibles. Asegúrate de protegerlo:
+
+```bash
+# Crear archivo con credenciales (cambia USERNAME y PASSWORD)
+cat > /opt/ibgateway/ibgateway/credentials.txt << 'EOF'
+USERNAME=tu_usuario_ib
+PASSWORD=tu_contraseña_ib
+EOF
+
+# Proteger el archivo (solo root puede leerlo)
+chmod 600 /opt/ibgateway/ibgateway/credentials.txt
+```
+
+**Nota**: Puedes dejar las credenciales vacías y se pedirán al iniciar, pero para automatización es mejor tenerlas configuradas.
+
+---
+
+## 🚀 Paso 5: Crear Script de Inicio
+
+Crea un script para iniciar IB Gateway fácilmente:
+
+```bash
+cat > /opt/ibgateway/start_ibgateway.sh << 'EOF'
+#!/bin/bash
+
+# Script para iniciar IB Gateway
+# Uso: /opt/ibgateway/start_ibgateway.sh
+
+IB_GATEWAY_DIR="/opt/ibgateway"
+JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"  # Ajusta según tu instalación de Java
+
+# Verificar que Java está instalado
+if ! command -v java &> /dev/null; then
+    echo "❌ Java no está instalado. Instálalo con: apt install openjdk-17-jre-headless"
+    exit 1
+fi
+
+# Cambiar al directorio de IB Gateway
+cd "$IB_GATEWAY_DIR"
+
+# Iniciar IB Gateway
+echo "🚀 Iniciando IB Gateway..."
+java -cp "$IB_GATEWAY_DIR/jts.jar:$IB_GATEWAY_DIR/total.2013.jar" \
+     -Dsun.java2d.noddraw=true \
+     -Dswing.boldMetal=false \
+     ibgateway.GWClient \
+     "$IB_GATEWAY_DIR/ibgateway/ibgateway.ini"
+EOF
+
+chmod +x /opt/ibgateway/start_ibgateway.sh
+```
+
+**Nota**: El comando exacto puede variar según la versión de IB Gateway. Verifica la estructura de directorios después de la instalación.
+
+---
+
+## 🔄 Paso 6: Crear Servicio Systemd (Recomendado)
+
+Para que IB Gateway se ejecute automáticamente al iniciar el servidor:
+
+```bash
+cat > /etc/systemd/system/ibgateway.service << 'EOF'
 [Unit]
 Description=Interactive Brokers Gateway
 After=network.target
 
 [Service]
 Type=simple
-User=tu_usuario
-WorkingDirectory=/home/tu_usuario/Jts
-ExecStart=/home/tu_usuario/Jts/ibgateway
-Restart=on-failure
+User=root
+WorkingDirectory=/opt/ibgateway
+ExecStart=/usr/bin/java -cp /opt/ibgateway/jts.jar:/opt/ibgateway/total.2013.jar -Dsun.java2d.noddraw=true -Dswing.boldMetal=false ibgateway.GWClient /opt/ibgateway/ibgateway/ibgateway.ini
+Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-```
-
-**Habilitar servicio:**
-
-```bash
-# Recargar systemd
-sudo systemctl daemon-reload
-
-# Habilitar servicio (inicia al boot)
-sudo systemctl enable ibgateway
-
-# Iniciar servicio
-sudo systemctl start ibgateway
-
-# Ver estado
-sudo systemctl status ibgateway
-
-# Ver logs
-sudo journalctl -u ibgateway -f
-```
-
----
-
-## ⚙️ Parte 5: Configurar API (Desde Terminal)
-
-### Opción A: Editar Archivo de Configuración
-
-IB Gateway guarda configuración en archivos de texto. Puedes editarlos directamente:
-
-```bash
-# Buscar archivo de configuración
-find ~/Jts -name "*.ini" -o -name "*config*" | head -5
-
-# Generalmente está en:
-nano ~/Jts/jts.ini
-
-# O en:
-nano ~/.ibgateway/jts.ini
-```
-
-**Buscar sección `[API]` y agregar/modificar:**
-
-```ini
-[API]
-EnableActiveX=true
-SocketPort=7497
-TrustedIPs=127.0.0.1
-ReadOnlyAPI=false
-```
-
-**O desde terminal (agregar si no existe):**
-
-```bash
-# Crear o editar configuración
-mkdir -p ~/.ibgateway
-cat >> ~/.ibgateway/jts.ini << EOF
-[API]
-EnableActiveX=true
-SocketPort=7497
-TrustedIPs=127.0.0.1
-ReadOnlyAPI=false
 EOF
+
+# Recargar systemd
+systemctl daemon-reload
+
+# Habilitar para que inicie automáticamente
+systemctl enable ibgateway
+
+# Iniciar el servicio
+systemctl start ibgateway
+
+# Verificar estado
+systemctl status ibgateway
 ```
 
 ---
 
-### Opción B: Usar IB Gateway una vez para Configurar
+## 🔍 Paso 7: Verificar que IB Gateway Está Corriendo
 
-1. Ejecuta IB Gateway normalmente
-2. Configura API desde la interfaz gráfica
-3. La configuración se guarda automáticamente
-
----
-
-## ✅ Parte 6: Verificar Instalación
-
-### Verificar que IB Gateway está Instalado
+### Verificar proceso:
 
 ```bash
-# Verificar instalación
-ls -la ~/Jts/ibgateway
+# Ver si el proceso está corriendo
+ps aux | grep ibgateway
 
-# O donde lo instalaste
-ls -la ~/IBGateway/ibgateway
+# Ver si está escuchando en el puerto 7497
+netstat -tulpn | grep 7497
+# O con ss:
+ss -tulpn | grep 7497
 ```
 
----
-
-### Verificar que el Puerto está Abierto
+### Verificar logs:
 
 ```bash
-# Verificar puerto 7497 después de ejecutar IB Gateway
-netstat -tlnp | grep 7497
+# Si usas systemd
+journalctl -u ibgateway -f
 
-# O con ss
-ss -tlnp | grep 7497
+# O ver logs del servicio
+tail -f /opt/ibgateway/logs/ibgateway.log
+```
 
-# O con telnet (debe conectar)
+### Probar conexión:
+
+```bash
+# Desde el servidor
 telnet localhost 7497
-```
 
-**Si está funcionando, deberías ver:**
-```
-tcp   0   0 127.0.0.1:7497   0.0.0.0:*   LISTEN   12345/ibgateway
+# O con nc (netcat)
+nc -zv localhost 7497
 ```
 
 ---
 
-### Verificar desde tu Aplicación
+## 🔧 Paso 8: Configurar Firewall (si es necesario)
+
+Si tienes firewall activo, asegúrate de que el puerto esté abierto localmente:
 
 ```bash
-# Desde tu aplicación Docker
-docker-compose exec backend python -c "
+# Verificar si hay firewall
+ufw status
+
+# Si está activo, el puerto 7497 solo debe ser accesible desde localhost
+# (no necesitas abrirlo al exterior, solo localhost)
+```
+
+---
+
+## 🧪 Paso 9: Probar Conexión desde la Aplicación
+
+Una vez que IB Gateway esté corriendo, prueba la conexión desde tu aplicación:
+
+```bash
+# Verificar que el backend puede conectarse
+docker compose exec backend python -c "
 from app.services.data_extraction.ib_extractor import IBDataExtractor
 extractor = IBDataExtractor()
-extractor.connect_to_ib()
-print('✅ Conexión exitosa')
+try:
+    extractor.connect_to_ib()
+    print('✅ Conexión exitosa a IB Gateway')
+    print(f'Conectado: {extractor.connected}')
+except Exception as e:
+    print(f'❌ Error: {e}')
 "
 ```
 
 ---
 
-## 🔍 Script Completo de Instalación
+## 📝 Paso 10: Configurar Variables de Entorno (si es necesario)
 
-Aquí tienes un script completo que hace todo automáticamente:
+Si IB Gateway está en otro servidor o necesitas cambiar la configuración:
 
 ```bash
-#!/bin/bash
-# install_ibgateway.sh
-
-set -e
-
-echo "🚀 Instalando IB Gateway para Linux..."
-
-# 1. Crear directorio
-INSTALL_DIR="$HOME/IBGateway"
-DOWNLOADS_DIR="$HOME/ibgateway"
-mkdir -p "$DOWNLOADS_DIR"
-cd "$DOWNLOADS_DIR"
-
-# 2. Descargar IB Gateway
-echo "📥 Descargando IB Gateway..."
-wget -q --show-progress \
-  https://download2.interactivebrokers.com/installers/ibgateway-stable-latest-linux-x64.sh \
-  -O ibgateway-installer.sh
-
-# 3. Dar permisos
-chmod +x ibgateway-installer.sh
-
-# 4. Instalar
-echo "⚙️ Instalando IB Gateway..."
-./ibgateway-installer.sh -q -dir "$INSTALL_DIR"
-
-# 5. Configurar API
-echo "🔧 Configurando API..."
-mkdir -p "$INSTALL_DIR"
-cat > "$INSTALL_DIR/jts.ini" << EOF
-[API]
-EnableActiveX=true
-SocketPort=7497
-TrustedIPs=127.0.0.1
-ReadOnlyAPI=false
-EOF
-
-echo "✅ IB Gateway instalado en: $INSTALL_DIR"
-echo ""
-echo "Para ejecutar:"
-echo "  cd $INSTALL_DIR && ./ibgateway"
+# Editar .env del backend
+nano /opt/proyectos/G4QC/backend/.env
 ```
 
-**Guardar y ejecutar:**
+Asegúrate de que tenga:
+```
+IB_HOST=127.0.0.1
+IB_PORT=7497
+IB_CLIENT_ID=1
+```
+
+Si IB Gateway está en otro servidor, cambia `IB_HOST` a la IP del servidor donde está IB Gateway.
+
+---
+
+## 🔄 Comandos Útiles
+
+### Iniciar IB Gateway manualmente:
 
 ```bash
-# Guardar script
-nano install_ibgateway.sh
+/opt/ibgateway/start_ibgateway.sh
+```
 
-# Pegar el contenido del script
-# Guardar (Ctrl+O, Enter, Ctrl+X)
+### Iniciar como servicio:
 
-# Dar permisos
-chmod +x install_ibgateway.sh
+```bash
+systemctl start ibgateway
+```
 
-# Ejecutar
-./install_ibgateway.sh
+### Detener IB Gateway:
+
+```bash
+systemctl stop ibgateway
+```
+
+### Ver estado:
+
+```bash
+systemctl status ibgateway
+```
+
+### Ver logs en tiempo real:
+
+```bash
+journalctl -u ibgateway -f
+```
+
+### Reiniciar:
+
+```bash
+systemctl restart ibgateway
 ```
 
 ---
 
-## 🎯 Resumen de Comandos
+## ⚠️ Solución de Problemas
 
-### Instalación Rápida:
-
-```bash
-# 1. Descargar
-mkdir -p ~/ibgateway && cd ~/ibgateway
-wget https://download2.interactivebrokers.com/installers/ibgateway-stable-latest-linux-x64.sh
-chmod +x ibgateway-stable-latest-linux-x64.sh
-
-# 2. Instalar
-./ibgateway-stable-latest-linux-x64.sh -q
-
-# 3. Ejecutar
-cd ~/Jts
-./ibgateway
-```
-
-### Configurar API:
+### Error: "Java not found"
 
 ```bash
-# Editar configuración
-nano ~/Jts/jts.ini
+# Instalar Java
+apt install -y openjdk-17-jre-headless
 
-# Agregar:
-[API]
-EnableActiveX=true
-SocketPort=7497
+# Verificar instalación
+java -version
 ```
 
-### Verificar:
+### Error: "Cannot connect to IB Gateway"
 
-```bash
-# Ver puerto
-ss -tlnp | grep 7497
+1. **Verificar que IB Gateway está corriendo:**
+   ```bash
+   ps aux | grep ibgateway
+   systemctl status ibgateway
+   ```
 
-# O desde tu app
-docker-compose exec backend python -c "from app.services.data_extraction.ib_extractor import IBDataExtractor; IBDataExtractor().connect_to_ib(); print('OK')"
-```
+2. **Verificar que está escuchando en el puerto correcto:**
+   ```bash
+   netstat -tulpn | grep 7497
+   ```
+
+3. **Verificar configuración de API:**
+   - Asegúrate de que `EnableAPI=true` en `ibgateway.ini`
+   - Verifica que el puerto es correcto (7497 para Paper, 7496 para Live)
+
+### Error: "Connection refused"
+
+- IB Gateway no está corriendo
+- Puerto incorrecto en la configuración
+- Firewall bloqueando la conexión
+
+### Error: "Client ID already in use"
+
+- Otra aplicación está usando el mismo Client ID
+- Cambia `IB_CLIENT_ID` en la configuración del backend
+
+### IB Gateway se cierra constantemente
+
+- Revisa los logs: `journalctl -u ibgateway -n 50`
+- Verifica que las credenciales son correctas
+- Verifica que hay suficiente memoria: `free -h`
 
 ---
 
-## 🐧 Consideraciones Especiales para Linux
+## 🔒 Seguridad
 
-### Sin Interfaz Gráfica (Headless)
+**IMPORTANTE**:
 
-Si tu servidor Linux no tiene interfaz gráfica:
+1. **Protege las credenciales:**
+   ```bash
+   chmod 600 /opt/ibgateway/ibgateway/credentials.txt
+   ```
 
-**Opción 1: Usar X11 Forwarding (SSH)**
+2. **No expongas el puerto al exterior:**
+   - IB Gateway solo debe ser accesible desde localhost (127.0.0.1)
+   - No configures port forwarding para el puerto 7497
 
-```bash
-# Desde tu PC local, conectar con X11 forwarding
-ssh -X usuario@servidor-linux
-
-# En el servidor, exportar display
-export DISPLAY=:10.0
-
-# Ejecutar IB Gateway
-cd ~/Jts
-./ibgateway
-```
-
-**Opción 2: Usar VNC**
-
-```bash
-# Instalar VNC server
-sudo apt-get install tigervnc-standalone-server
-
-# Iniciar servidor VNC
-vncserver :1
-
-# Conectar con cliente VNC y ejecutar IB Gateway
-```
-
-**Opción 3: Ejecutar IB Gateway en Otra Máquina**
-
-- Ejecuta IB Gateway en Windows/macOS o Linux con GUI
-- Conecta desde tu servidor Linux usando el IP de esa máquina
-- Cambia `IB_HOST` en tu `.env` a la IP de esa máquina
+3. **Usa Paper Trading para pruebas:**
+   - Siempre prueba primero con Paper Trading (puerto 7497)
+   - Solo usa Live Trading cuando estés seguro
 
 ---
 
-## 🔧 Troubleshooting
+## 📚 Referencias
 
-### Error: "Permission denied"
-
-```bash
-# Dar permisos de ejecución
-chmod +x ibgateway-stable-latest-linux-x64.sh
-```
-
-### Error: "No space left on device"
-
-```bash
-# Verificar espacio
-df -h
-
-# Limpiar si es necesario
-sudo apt-get clean
-```
-
-### Error: "Cannot connect to display"
-
-```bash
-# Si no tienes GUI, usa X11 forwarding o VNC
-# O ejecuta IB Gateway en otra máquina
-```
-
-### Error: Puerto 7497 ya en uso
-
-```bash
-# Ver qué está usando el puerto
-sudo lsof -i :7497
-
-# O
-sudo netstat -tlnp | grep 7497
-
-# Matar proceso si es necesario
-sudo kill -9 PID
-```
+- [IB Gateway Documentation](https://www.interactivebrokers.com/en/index.php?f=16457)
+- [IB API Documentation](https://interactivebrokers.github.io/tws-api/)
+- [IB Gateway Download](https://www.interactivebrokers.com/en/index.php?f=16457)
 
 ---
 
-## ✅ Checklist Completo
+## ✅ Verificación Final
 
-- [ ] Crear cuenta Paper Trading (desde navegador)
-- [ ] Descargar IB Gateway para Linux
-- [ ] Dar permisos de ejecución al instalador
-- [ ] Ejecutar instalador
-- [ ] Ejecutar IB Gateway
-- [ ] Iniciar sesión con Paper Trading
-- [ ] Configurar API (habilitar socket, puerto 7497)
-- [ ] Verificar puerto 7497 abierto
-- [ ] Probar conexión desde tu aplicación
+Después de la instalación, verifica:
+
+- [ ] Java está instalado: `java -version`
+- [ ] IB Gateway está instalado: `ls /opt/ibgateway`
+- [ ] Archivo de configuración existe: `ls /opt/ibgateway/ibgateway/ibgateway.ini`
+- [ ] Servicio está corriendo: `systemctl status ibgateway`
+- [ ] Puerto 7497 está escuchando: `netstat -tulpn | grep 7497`
+- [ ] Backend puede conectarse: Probar conexión desde la aplicación
 
 ---
 
-**¿Necesitas ayuda con algún paso específico en Linux?**
-
+**¿Necesitas ayuda con algún paso específico?**

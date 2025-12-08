@@ -1,7 +1,7 @@
 """
 Market Data Models
 """
-from sqlalchemy import Column, String, DateTime, Float, Integer, Index
+from sqlalchemy import Column, String, DateTime, Float, Integer, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from app.core.database import Base
 from datetime import datetime
@@ -25,8 +25,10 @@ class MarketData(Base):
     count = Column(Integer, default=0)
     
     # Índices compuestos para queries eficientes
+    # Constraint UNIQUE para prevenir duplicados
     __table_args__ = (
         Index('idx_symbol_timeframe_timestamp', 'symbol', 'timeframe', 'timestamp'),
+        UniqueConstraint('symbol', 'timeframe', 'timestamp', name='uq_market_data_symbol_tf_ts'),
     )
     
     def __repr__(self):
