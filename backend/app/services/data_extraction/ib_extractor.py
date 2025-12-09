@@ -101,33 +101,139 @@ class IBDataExtractor(EClient, EWrapper):
                 self.error_en_req[reqId] = True
                 self.evento.set()  # Desbloquear para que no se quede esperando
     
+    def detect_instrument_type(self, symbol: str) -> dict:
+        """
+        Detectar automáticamente el tipo de instrumento basado en el símbolo
+        
+        Returns:
+            dict con sec_type, exchange, currency, y si necesita contract_month
+        """
+        symbol_upper = symbol.upper()
+        
+        # Futuros conocidos
+        futures_cme = ['ES', 'NQ', 'YM', 'RTY', 'EC', '6E', '6B', '6J', '6A', '6C', '6S', '6N', '6M']
+        futures_nymex = ['CL', 'NG', 'RB', 'HO', 'GC', 'SI', 'HG', 'PA', 'PL', 'ZC', 'ZS', 'ZW', 'ZL', 'ZM', 'LE', 'HE', 'KE']
+        futures_cbot = ['ZB', 'ZN', 'ZF', 'ZT', 'ZS', 'ZW', 'ZC', 'KE']
+        
+        # ETFs conocidos
+        etfs = ['SPY', 'QQQ', 'TLT', 'IWM', 'DIA', 'GLD', 'SLV', 'USO', 'XLF', 'XLE']
+        
+        # Forex conocido (formato CURRENCY1CURRENCY2)
+        if len(symbol_upper) == 6 and symbol_upper.isalpha():
+            # Verificar si es un par de divisas común
+            forex_pairs = ['EURUSD', 'GBPUSD', 'AUDUSD', 'USDJPY', 'USDCAD', 'USDCHF', 'NZDUSD', 
+                          'EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY', 'EURAUD', 'EURCAD']
+            if symbol_upper in forex_pairs:
+                return {
+                    'sec_type': 'CASH',
+                    'exchange': 'IDEALPRO',
+                    'currency': symbol_upper[3:6],  # Segunda divisa
+                    'needs_contract_month': False
+                }
+        
+        # Detectar futuros
+        if symbol_upper in futures_cme:
+            return {
+                'sec_type': 'FUT',
+                'exchange': 'CME',
+                'currency': 'USD',
+                'needs_contract_month': True,
+                'trading_class': symbol_upper if symbol_upper in ['RB'] else None
+            }
+        elif symbol_upper in futures_nymex:
+            return {
+                'sec_type': 'FUT',
+                'exchange': 'NYMEX' if symbol_upper in ['CL', 'NG', 'RB', 'HO'] else 'COMEX' if symbol_upper in ['GC', 'SI', 'HG', 'PA', 'PL'] else 'CME',
+                'currency': 'USD',
+                'needs_contract_month': True,
+                'trading_class': symbol_upper if symbol_upper in ['RB', 'HE', 'LE'] else None
+            }
+        elif symbol_upper in futures_cbot:
+            return {
+                'sec_type': 'FUT',
+                'exchange': 'CBOT',
+                'currency': 'USD',
+                'needs_contract_month': True,
+                'trading_class': symbol_upper
+            }
+        
+        # Detectar ETFs/Stocks
+        if symbol_upper in etfs or (len(symbol_upper) <= 5 and symbol_upper.isalpha()):
+            return {
+                'sec_type': 'STK',
+                'exchange': 'SMART',  # IB usa SMART para encontrar el mejor exchange
+                'currency': 'USD',
+                'needs_contract_month': False
+            }
+        
+        # Por defecto, asumir futuro en CME
+        return {
+            'sec_type': 'FUT',
+            'exchange': 'CME',
+            'currency': 'USD',
+            'needs_contract_month': True
+        }
+    
     def create_contract(
         self, 
         symbol: str, 
-        sec_type: str = "FUT",
-        exchange: str = "CME",
-        currency: str = "USD",
+        sec_type: Optional[str] = None,
+        exchange: Optional[str] = None,
+        currency: Optional[str] = None,
         contract_month: Optional[str] = None,
         trading_class: Optional[str] = None
     ) -> Contract:
         """
-        Crear contrato IB
+        Crear contrato IB con detección automática del tipo de instrumento
         
         Args:
-            symbol: Símbolo del instrumento (ES, NQ, EC, etc.)
-            sec_type: Tipo de contrato (FUT, STK, etc.)
-            exchange: Exchange (CME, NYMEX, etc.)
-            currency: Moneda
-            contract_month: Mes de vencimiento (ej: "202512")
-            trading_class: Clase de trading (opcional)
+            symbol: Símbolo del instrumento (ES, NQ, SPY, EURUSD, etc.)
+            sec_type: Tipo de contrato (FUT, STK, CASH). Si es None, se detecta automáticamente
+            exchange: Exchange (CME, SMART, IDEALPRO, etc.). Si es None, se detecta automáticamente
+            currency: Moneda. Si es None, se detecta automáticamente
+            contract_month: Mes de vencimiento (ej: "202512"). Solo para futuros
+            trading_class: Clase de trading (opcional). Solo para algunos futuros
         """
+        # Detectar tipo de instrumento si no se especifica
+        if sec_type is None:
+            instrument_info = self.detect_instrument_type(symbol)
+            sec_type = instrument_info['sec_type']
+            exchange = exchange or instrument_info['exchange']
+            currency = currency or instrument_info['currency']
+            trading_class = trading_class or instrument_info.get('trading_class')
+            
+            # Solo agregar contract_month si es necesario y no se proporcionó
+            if instrument_info['needs_contract_month'] and contract_month is None:
+                # Calcular contract_month automáticamente para futuros
+                from datetime import datetime
+                now = datetime.utcnow()
+                if now.day > 15 and now.month < 12:
+                    contract_month = f"{now.year}{now.month + 1:02d}"
+                elif now.day > 15 and now.month == 12:
+                    contract_month = f"{now.year + 1}01"
+                else:
+                    contract_month = f"{now.year}{now.month:02d}"
+        
         contrato = Contract()
         contrato.symbol = symbol
-        contrato.secType = sec_type
-        contrato.exchange = exchange
-        contrato.currency = currency
         
-        if contract_month:
+        # Para forex (CASH), el símbolo debe ser la primera divisa
+        if sec_type == 'CASH':
+            # EURUSD -> symbol=EUR, currency=USD
+            if len(symbol) == 6 and symbol.isalpha():
+                contrato.symbol = symbol[:3]
+                contrato.currency = symbol[3:6]
+            else:
+                contrato.symbol = symbol
+                contrato.currency = currency or 'USD'
+        else:
+            contrato.symbol = symbol
+            contrato.currency = currency or 'USD'
+        
+        contrato.secType = sec_type
+        contrato.exchange = exchange or 'CME'
+        
+        if contract_month and sec_type == 'FUT':
             contrato.lastTradeDateOrContractMonth = contract_month
         
         if trading_class:
@@ -166,12 +272,18 @@ class IBDataExtractor(EClient, EWrapper):
         if not self.connected:
             self.connect_to_ib()
         
-        # Crear contrato
+        # Detectar tipo de instrumento y crear contrato
+        instrument_info = self.detect_instrument_type(symbol)
+        
+        # Solo usar contract_month si el instrumento lo necesita
+        if not instrument_info['needs_contract_month']:
+            contract_month = None
+        
         contrato = self.create_contract(
             symbol=symbol,
             contract_month=contract_month,
-            exchange=exchange,
-            trading_class=trading_class
+            exchange=exchange or instrument_info['exchange'],
+            trading_class=trading_class or instrument_info.get('trading_class')
         )
         
         # Fecha final por defecto

@@ -51,22 +51,34 @@ async def extract_data(
     """
     Extraer datos históricos desde Interactive Brokers
     
-    - **symbol**: Símbolo del instrumento (ES, NQ, EC, 6B, RB, GC, LE, HE, etc.)
+    Soporta múltiples tipos de instrumentos:
+    - **Futuros**: ES, NQ, CL, YM, GC, etc. (requiere contract_month o se calcula automáticamente)
+    - **ETFs/Stocks**: SPY, QQQ, TLT, etc. (no requiere contract_month)
+    - **Forex**: EURUSD, GBPUSD, AUDUSD, etc. (no requiere contract_month)
+    
+    Parámetros:
+    - **symbol**: Símbolo del instrumento
     - **duration**: Duración por bloque (ej: "1 M", "1 D", "3600 S")
     - **bar_size**: Tamaño de barra (ej: "1 min", "5 mins", "1 hour")
-    - **contract_month**: Mes de vencimiento opcional (ej: "202512")
+    - **contract_month**: Mes de vencimiento opcional (solo para futuros, ej: "202512")
     - **num_blocks**: Número de bloques a extraer (máximo 12)
     
     **Nota**: Requiere que ibapi esté instalado y que IB TWS/Gateway esté ejecutándose.
+    El tipo de instrumento se detecta automáticamente basado en el símbolo.
     """
     processor = DataProcessor(db)
     extractor = None
     
     try:
-        # Calcular contract_month automáticamente si no se proporciona
-        # Para futuros, necesitamos especificar el mes de vencimiento
+        # Intentar crear el extractor (verificará si ibapi está instalado)
+        extractor = IBDataExtractor()
+        
+        # Detectar tipo de instrumento para saber si necesita contract_month
+        instrument_info = extractor.detect_instrument_type(request.symbol)
+        
+        # Calcular contract_month solo si es necesario (futuros)
         contract_month = request.contract_month
-        if not contract_month:
+        if instrument_info['needs_contract_month'] and not contract_month:
             # Calcular el próximo mes de vencimiento (formato YYYYMM)
             # Para futuros, normalmente se usa el "front month" (próximo disponible)
             from datetime import datetime
@@ -81,9 +93,9 @@ async def extract_data(
             else:
                 # Antes del día 15, usar el mes actual
                 contract_month = f"{now.year}{now.month:02d}"
-        
-        # Intentar crear el extractor (verificará si ibapi está instalado)
-        extractor = IBDataExtractor()
+        elif not instrument_info['needs_contract_month']:
+            # Para ETFs y Forex, no se necesita contract_month
+            contract_month = None
         
         # Extraer datos
         df = extractor.extract_historical_data(
@@ -98,9 +110,9 @@ async def extract_data(
             raise HTTPException(
                 status_code=404,
                 detail={
-                    "error": "No se obtuvieron datos",
-                    "message": f"No se obtuvieron datos para {request.symbol} con contract_month={contract_month}",
-                    "suggestion": "Verifica que el símbolo y el mes de vencimiento sean correctos"
+                "error": "No se obtuvieron datos",
+                "message": f"No se obtuvieron datos para {request.symbol}" + (f" con contract_month={contract_month}" if contract_month else ""),
+                "suggestion": "Verifica que el símbolo sea correcto" + (" y el mes de vencimiento" if contract_month else "")
                 }
             )
         
@@ -154,7 +166,7 @@ async def extract_data(
             detail={
                 "error": "Error de validación del contrato",
                 "message": str(e),
-                "solution": "Especifica un contract_month válido (ej: '202512' para diciembre 2025) o verifica el símbolo"
+                "solution": "Verifica que el símbolo sea correcto. Para futuros, especifica un contract_month válido (ej: '202512')"
             }
         )
     except Exception as e:

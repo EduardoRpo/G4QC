@@ -173,12 +173,28 @@ class DataScheduler:
                         
                         extractor = IBDataExtractor()
                         
+                        # Detectar tipo de instrumento para saber si necesita contract_month
+                        instrument_info = extractor.detect_instrument_type(symbol)
+                        contract_month = None
+                        
+                        # Solo calcular contract_month si es necesario (futuros)
+                        if instrument_info['needs_contract_month']:
+                            from datetime import datetime
+                            now = datetime.utcnow()
+                            if now.day > 15 and now.month < 12:
+                                contract_month = f"{now.year}{now.month + 1:02d}"
+                            elif now.day > 15 and now.month == 12:
+                                contract_month = f"{now.year + 1}01"
+                            else:
+                                contract_month = f"{now.year}{now.month:02d}"
+                        
                         # Extraer solo último día de datos
                         df = extractor.extract_historical_data(
                             symbol=symbol,
                             duration="1 D",
                             bar_size=bar_size,
-                            num_blocks=1
+                            num_blocks=1,
+                            contract_month=contract_month
                         )
                         
                         if not df.empty:
