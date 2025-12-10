@@ -35,7 +35,12 @@ export default function DataExtraction({ onExtract }: DataExtractionProps) {
       onExtract()
     } catch (error: any) {
       console.error('Error extracting data:', error)
-      alert(`Error: ${error.response?.data?.detail || error.message}`)
+      const errorMsg = error.response?.data?.detail?.message || 
+                      (typeof error.response?.data?.detail === 'string' ? error.response?.data?.detail : '') ||
+                      error.response?.data?.detail?.error ||
+                      error.message || 
+                      'Error desconocido'
+      alert(`Error al extraer datos: ${errorMsg}`)
     } finally {
       setLoading(false)
     }

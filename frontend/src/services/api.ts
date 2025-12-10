@@ -1,15 +1,34 @@
 import axios from 'axios'
 
 // En desarrollo, usar localhost. En Docker, usar el nombre del servicio
+// Vite inyecta variables de entorno en tiempo de compilación
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.DEV ? 'http://localhost:8000' : 'http://backend:8000')
+  (import.meta.env.DEV ? 'http://localhost:8000' : 'http://45.137.192.196:8000')
+
+console.log('🔧 API Base URL:', API_BASE_URL)
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 segundos de timeout
 })
+
+// Interceptor para manejar errores
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('❌ API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    })
+    return Promise.reject(error)
+  }
+)
 
 export const api = {
   // Scheduler endpoints

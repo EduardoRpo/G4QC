@@ -50,7 +50,11 @@ class DataScheduler:
     
     def _update_config(self):
         """Recargar configuración desde BD"""
-        self.db.refresh(self.config)
+        # Re-consultar en lugar de refresh para evitar problemas de sesión
+        config = self.db.query(SchedulerConfig).first()
+        if config:
+            self.config = config
+        # Si no hay configuración, mantener la actual (no debería pasar)
     
     def is_enabled(self) -> bool:
         """Verificar si el scheduler está activado"""

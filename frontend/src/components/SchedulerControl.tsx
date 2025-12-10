@@ -23,9 +23,13 @@ export default function SchedulerControl({ schedulerStatus, onUpdate }: Schedule
     try {
       await api.enableScheduler()
       onUpdate()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error enabling scheduler:', error)
-      alert('Error al activar el scheduler')
+      const errorMsg = error.response?.data?.detail?.message || 
+                      error.response?.data?.detail || 
+                      error.message || 
+                      'Error al activar el scheduler'
+      alert(`Error al activar el scheduler: ${errorMsg}`)
     } finally {
       setLoading(false)
     }
@@ -65,9 +69,13 @@ export default function SchedulerControl({ schedulerStatus, onUpdate }: Schedule
       alert('Configuración actualizada')
       setShowConfig(false)
       onUpdate()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating config:', error)
-      alert('Error al actualizar la configuración')
+      const errorMsg = error.response?.data?.detail?.message || 
+                      error.response?.data?.detail || 
+                      error.message || 
+                      'Error al actualizar la configuración'
+      alert(`Error al actualizar la configuración: ${errorMsg}`)
     } finally {
       setLoading(false)
     }
