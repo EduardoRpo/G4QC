@@ -117,9 +117,10 @@ async def extract_data(
             )
         
         # Guardar en base de datos si se solicita
+        records_saved = 0
         if request.save_to_db:
             timeframe = request.bar_size.replace(" ", "").lower()
-            processor.save_market_data(df, request.symbol, timeframe)
+            records_saved = processor.save_market_data(df, request.symbol, timeframe)
             
             # Generar timeframes adicionales en background
             if timeframe == "1min":
@@ -131,13 +132,13 @@ async def extract_data(
         
         return ExtractDataResponse(
             status="success",
-            records=len(df),
+            records=records_saved if request.save_to_db else len(df),
             symbol=request.symbol,
             date_range={
                 "start": df['Date'].min().isoformat(),
                 "end": df['Date'].max().isoformat()
             },
-            message=f"Datos extraídos y guardados correctamente"
+            message=f"Datos extraídos: {len(df)} registros obtenidos, {records_saved} registros guardados" if request.save_to_db else f"Datos extraídos: {len(df)} registros obtenidos"
         )
         
     except ImportError as e:

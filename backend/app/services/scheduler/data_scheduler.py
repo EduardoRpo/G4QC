@@ -183,7 +183,6 @@ class DataScheduler:
                         
                         # Solo calcular contract_month si es necesario (futuros)
                         if instrument_info['needs_contract_month']:
-                            from datetime import datetime
                             now = datetime.utcnow()
                             if now.day > 15 and now.month < 12:
                                 contract_month = f"{now.year}{now.month + 1:02d}"
